@@ -32,6 +32,15 @@ class FrWord
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $description = null;
 
+    #[ORM\ManyToOne(inversedBy: 'frWords')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?EnWord $enWord = null;
+
+    public function __construct(){
+        $this->createdAt = new \DateTime();
+        $this->updatedAt = new \DateTime();
+    }
+
     public function getId(): ?int
     {
         return $this->id;
@@ -81,6 +90,18 @@ class FrWord
     public function setDescription(?string $description): static
     {
         $this->description = $description;
+
+        return $this;
+    }
+
+    public function getEnWord(): ?EnWord
+    {
+        return $this->enWord;
+    }
+
+    public function setEnWord(?EnWord $enWord): static
+    {
+        $this->enWord = $enWord;
 
         return $this;
     }

@@ -11,11 +11,13 @@ use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 
 
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: '`user`')]
+#[UniqueEntity('email', 'Il existe déjà un utilisateur avec cet email.')]
 #[ApiResource(
     denormalizationContext: ['groups' => ['user:write']],
 )]
@@ -57,8 +59,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(['user:write'])]
     private ?string $gender = null;
 
-    #[ORM\OneToMany(mappedBy: 'createdBy', targetEntity: EnWord::class)]
+    #[ORM\OneToMany(mappedBy: 'user', targetEntity: EnWord::class)]
     private Collection $enWords;
+
 
     public function __construct()
     {
@@ -135,36 +138,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         // $this->plainPassword = null;
     }
 
-    /**
-     * @return Collection<int, EnWord>
-     */
-    public function getEnWords(): Collection
-    {
-        return $this->enWords;
-    }
-
-    public function addEnWord(EnWord $enWord): static
-    {
-        if (!$this->enWords->contains($enWord)) {
-            $this->enWords->add($enWord);
-            $enWord->setCreatedBy($this);
-        }
-
-        return $this;
-    }
-
-    public function removeEnWord(EnWord $enWord): static
-    {
-        if ($this->enWords->removeElement($enWord)) {
-            // set the owning side to null (unless already changed)
-            if ($enWord->getCreatedBy() === $this) {
-                $enWord->setCreatedBy(null);
-            }
-        }
-
-        return $this;
-    }
-
     public function getLastname(): ?string
     {
         return $this->lastname;
@@ -197,6 +170,36 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setGender(string $gender): static
     {
         $this->gender = $gender;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, EnWord>
+     */
+    public function getEnWords(): Collection
+    {
+        return $this->enWords;
+    }
+
+    public function addEnWord(EnWord $enWord): static
+    {
+        if (!$this->enWords->contains($enWord)) {
+            $this->enWords->add($enWord);
+            $enWord->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeEnWord(EnWord $enWord): static
+    {
+        if ($this->enWords->removeElement($enWord)) {
+            // set the owning side to null (unless already changed)
+            if ($enWord->getUser() === $this) {
+                $enWord->setUser(null);
+            }
+        }
 
         return $this;
     }

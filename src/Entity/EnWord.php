@@ -2,13 +2,33 @@
 
 namespace App\Entity;
 
-use ApiPlatform\Metadata\ApiResource;
-use App\Repository\EnWordRepository;
+use App\Entity\FrWord;
+use ApiPlatform\Metadata\Post;
 use Doctrine\DBAL\Types\Types;
+use ApiPlatform\Metadata\Patch;
 use Doctrine\ORM\Mapping as ORM;
+use App\Repository\EnWordRepository;
+use ApiPlatform\Metadata\ApiResource;
+use App\Controller\CreateEnWordController;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\Common\Collections\ArrayCollection;
+use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
+
 
 #[ORM\Entity(repositoryClass: EnWordRepository::class)]
-#[ApiResource]
+#[ApiResource(
+    denormalizationContext: ['groups' => ['enword:write']], 
+    operations:[
+        new Post(
+            controller: CreateEnWordController::class,
+            validationContext: ['groups' => ['postValidation']],
+        ),
+        new Patch(
+
+        )
+    ]
+)]
 class EnWord
 {
     #[ORM\Id]
@@ -17,6 +37,8 @@ class EnWord
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['enword:write'])]
+    #[Assert\NotNull([], "Ce champs ne peut pas être vide", groups: ['postValidation'])]
     private ?string $content = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
@@ -26,11 +48,8 @@ class EnWord
     private ?\DateTimeInterface $updatedAt = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['enword:write'])]
     private ?string $description = null;
-
-    #[ORM\ManyToOne(inversedBy: 'enWords')]
-    #[ORM\JoinColumn(nullable: false)]
-    private ?User $createdBy = null;
 
     #[ORM\Column]
     private ?int $nbError = null;
@@ -38,12 +57,27 @@ class EnWord
     #[ORM\Column]
     private ?int $nbSuccess = null;
 
+    #[Groups(['enword:write'])]
+    #[Assert\NotNull([], "Ce champs ne peut pas être vide", groups: ['postValidation'])]
+    public string $wordFr;
+
+    #[Groups(['enword:write'])]
+    public $frDescription;
+
+    #[ORM\OneToMany(mappedBy: 'enWord', targetEntity: FrWord::class)]
+    private Collection $frWords;
+
+    #[ORM\ManyToOne(inversedBy: 'enWords')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?User $user = null;
+
 
     public function __construct()
     {
         $this->nbError = 0;
         $this->nbSuccess = 0;
         $this->createdAt = new \DateTime();
+        $this->frWords = new ArrayCollection();
     }
 
 
@@ -100,18 +134,6 @@ class EnWord
         return $this;
     }
 
-    public function getCreatedBy(): ?User
-    {
-        return $this->createdBy;
-    }
-
-    public function setCreatedBy(?User $createdBy): static
-    {
-        $this->createdBy = $createdBy;
-
-        return $this;
-    }
-
     public function getNbError(): ?int
     {
         return $this->nbError;
@@ -132,6 +154,48 @@ class EnWord
     public function setNbSuccess(int $nbSuccess): static
     {
         $this->nbSuccess = $nbSuccess;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, FrWord>
+     */
+    public function getFrWords(): Collection
+    {
+        return $this->frWords;
+    }
+
+    public function addFrWord(FrWord $frWord): static
+    {
+        if (!$this->frWords->contains($frWord)) {
+            $this->frWords->add($frWord);
+            $frWord->setEnWord($this);
+        }
+
+        return $this;
+    }
+
+    public function removeFrWord(FrWord $frWord): static
+    {
+        if ($this->frWords->removeElement($frWord)) {
+            // set the owning side to null (unless already changed)
+            if ($frWord->getEnWord() === $this) {
+                $frWord->setEnWord(null);
+            }
+        }
+
+        return $this;
+    }
+
+    public function getUser(): ?User
+    {
+        return $this->user;
+    }
+
+    public function setUser(?User $user): static
+    {
+        $this->user = $user;
 
         return $this;
     }
