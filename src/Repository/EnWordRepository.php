@@ -5,6 +5,10 @@ namespace App\Repository;
 use App\Entity\EnWord;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use ApiPlatform\Doctrine\Orm\Paginator;
+use App\Entity\User;
+use Doctrine\Common\Collections\Criteria;
+use Doctrine\ORM\Tools\Pagination\Paginator as DoctrinePaginator;
 
 /**
  * @extends ServiceEntityRepository<EnWord>
@@ -38,6 +42,28 @@ class EnWordRepository extends ServiceEntityRepository
             $this->getEntityManager()->flush();
         }
     }
+
+
+    public function getCollectionByUser( User $user, int $page = 1, int $itemsPerPage = 10): Paginator
+    {
+        $firstResult = ($page -1) * $itemsPerPage;
+
+        $queryBuilder = $this->createQueryBuilder("e");
+        $queryBuilder->select('e')
+            ->where('e.user = :user')
+            ->setParameter('user', $user);
+
+        $criteria = Criteria::create()
+            ->setFirstResult($firstResult)
+            ->setMaxResults($itemsPerPage);
+        $queryBuilder->addCriteria($criteria);
+
+        $doctrinePaginator = new DoctrinePaginator($queryBuilder);
+        $paginator = new Paginator($doctrinePaginator);
+
+        return $paginator;
+    }
+
 
 //    /**
 //     * @return EnWord[] Returns an array of EnWord objects
