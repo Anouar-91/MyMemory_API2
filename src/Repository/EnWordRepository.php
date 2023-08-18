@@ -51,6 +51,7 @@ class EnWordRepository extends ServiceEntityRepository
         $queryBuilder = $this->createQueryBuilder("e");
         $queryBuilder->select('e')
             ->where('e.user = :user')
+            ->orderBy("e.createdAt", "DESC")
             ->setParameter('user', $user);
 
         $criteria = Criteria::create()
